@@ -1,4 +1,3 @@
-import itertools
 import random
 from copy import deepcopy
 
@@ -142,8 +141,8 @@ class Sentence:
         a cell is known to be safe.
         """
 
-        if cell in self.cells:
-            self.cells.remove(cell)
+        # if cell in self.cells:
+        #     self.cells.remove(cell)
 
 
 class MinesweeperAI:
@@ -223,14 +222,15 @@ class MinesweeperAI:
                 self.mark_safe(safe_cell)
             for mine_cell in copy_of_known_mines:
                 self.mark_mine(mine_cell)
-            for sentence_y in copy_of_knowledge:
-                if sentence_y.cells == sentence_x.cells:
-                    continue
-                if sentence_y.cells.issubset(sentence_x.cells):
-                    subtracted_cells = set(sentence_y.cells ^ sentence_x.cells)
-                    subtracted_count = sentence_y.count - sentence_x.count
-                    inferred_sentence = Sentence(subtracted_cells, subtracted_count)
-                    self.knowledge.append(inferred_sentence)
+
+        for sentence_1 in copy_of_knowledge:
+            for sentence_2 in copy_of_knowledge:
+                if not sentence_1.__eq__(sentence_2):
+                    if sentence_1.cells < sentence_2.cells:
+                        subtracted_cells = set(sentence_1.cells - sentence_2.cells)
+                        subtracted_count = sentence_1.count - sentence_2.count
+                        inferred_sentence = Sentence(subtracted_cells, subtracted_count)
+                        self.knowledge.append(inferred_sentence)
 
         print(f"knowledge length = {len(self.knowledge)}")
 
