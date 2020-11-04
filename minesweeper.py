@@ -141,8 +141,8 @@ class Sentence:
         a cell is known to be safe.
         """
 
-        # if cell in self.cells:
-        #     self.cells.remove(cell)
+        if cell in self.cells and self.count != 0:
+            self.cells.remove(cell)
 
 
 class MinesweeperAI:
@@ -211,7 +211,8 @@ class MinesweeperAI:
         self.mark_safe(cell)
 
         # Store a new sentence in the knowledge base
-        self.knowledge.append(Sentence(self.get_unknown_neighbors(cell), count))
+        if len(self.get_unknown_neighbors(cell)) != 0:
+            self.knowledge.append(Sentence(self.get_unknown_neighbors(cell), count))
 
         copy_of_knowledge = deepcopy(self.knowledge)
 
@@ -223,16 +224,20 @@ class MinesweeperAI:
             for mine_cell in copy_of_known_mines:
                 self.mark_mine(mine_cell)
 
-        for sentence_1 in copy_of_knowledge:
-            for sentence_2 in copy_of_knowledge:
+        for sentence_1 in self.knowledge:
+            for sentence_2 in self.knowledge:
                 if not sentence_1.__eq__(sentence_2):
                     if sentence_1.cells < sentence_2.cells:
-                        subtracted_cells = set(sentence_1.cells - sentence_2.cells)
-                        subtracted_count = sentence_1.count - sentence_2.count
+                        subtracted_cells = set(sentence_2.cells - sentence_1.cells)
+                        subtracted_count = sentence_2.count - sentence_1.count
                         inferred_sentence = Sentence(subtracted_cells, subtracted_count)
+                        if inferred_sentence in self.knowledge:
+                            continue
                         self.knowledge.append(inferred_sentence)
-
-        print(f"knowledge length = {len(self.knowledge)}")
+                        for sentence_3 in self.knowledge:
+                            if not sentence_3.__eq__(sentence_1) or not sentence_3.__eq__(sentence_2):
+                                if not sentence_2.cells < sentence_3.cells:
+                                    self.knowledge = list(filter(sentence_2.__ne__, self.knowledge))
 
     def get_unknown_neighbors(self, cell):
         """
@@ -240,16 +245,16 @@ class MinesweeperAI:
         """
 
         unknown_neighbors = set()
-        x_axis, y_axis = cell
+        x_coordinates, y_coordinates = cell
 
         # Add all neighbors which state is neither determined nor the current cell
-        for i in range(x_axis - 1, x_axis + 2):
+        for i in range(x_coordinates - 1, x_coordinates + 2):
             if i < 0 or i > self.width - 1:
                 continue
-            for j in range(y_axis - 1, y_axis + 2):
+            for j in range(y_coordinates - 1, y_coordinates + 2):
                 if j < 0 or j > self.height - 1:
                     continue
-                if (i, j) == cell or (i, j) in self.safes or (i, j) in self.moves_made or (i, j) in self.mines:
+                if (i, j) == cell or (i, j) in self.safes or (i, j) in self.moves_made:
                     continue
                 unknown_neighbors.add((i, j))
 
