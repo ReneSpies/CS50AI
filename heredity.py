@@ -1,6 +1,7 @@
 import csv
 import itertools
 import sys
+
 import numpy
 
 PROBS = {
@@ -152,65 +153,137 @@ def joint_probability(people, one_gene, two_genes, have_trait):
     parents = list()
     children = list()
 
+    # Filter the persons for "parent" and "child"
     for person in people:
         if people[person]["mother"] is None:
             parents.append(person)
         else:
             children.append(person)
 
+    # Infer which persons should have no gene
     any_gene = one_gene.union(two_genes)
     no_genes = people.keys() - any_gene
 
     probabilities = dict()
 
+    # Calculate each persons probability to have given specific scenario
     for person in people:
         if person in parents:
+
+            # The person is a parent
             if person not in have_trait:
+
+                # The person is a parent and should not have the trait
                 if person in no_genes:
+
+                    # The person is a parent and should have 0 genes
+                    # Multiply the probability of a parent not having a gene by them not having the trait
+                    # given that they do not have a gene
                     probabilities[person] = PROBS["gene"][0] * PROBS["trait"][0][False]
                 elif person in one_gene:
+
+                    # The person is a parent and should have 1 gene
+                    # Multiply the probability of a parent having a gene by them not having the trait
+                    # given that they have a gene
                     probabilities[person] = PROBS["gene"][1] * PROBS["trait"][1][False]
                 elif person in two_genes:
+
+                    # The person is a parent and should have 2 genes
+                    # Multiply the probability of a parent having two genes by them not having the trait
+                    # given that they two genes
                     probabilities[person] = PROBS["gene"][2] * PROBS["trait"][2][False]
             elif person in have_trait:
+
+                # The person is a parent and should have the trait
                 if person in no_genes:
+
+                    # The person is a parent and should have 0 genes
+                    # Multiply the probability of a parent not having a gene by them having the trait
+                    # given that they do not have a gene
                     probabilities[person] = PROBS["gene"][0] * PROBS["trait"][0][True]
                 elif person in one_gene:
+
+                    # The person is a parent and should have 1 gene
+                    # Multiply the probability of a parent having a gene by them having the trait
+                    # given that they have a gene
                     probabilities[person] = PROBS["gene"][1] * PROBS["trait"][1][True]
                 elif person in two_genes:
+
+                    # The person is a parent and should have 2 genes
+                    # Multiply the probability of a parent having two genes by them having the trait
+                    # given that they two genes
                     probabilities[person] = PROBS["gene"][2] * PROBS["trait"][2][True]
         elif person in children:
+
+            # The person is a child
             parent_probability = list()
+
+            # Calculate the probability of its parents to pass on genes
             for parent in parents:
                 if parent in no_genes:
+
+                    # If the parents have no genes, it can only mutate to become one
                     parent_probability.append(PROBS["mutation"])
                 elif parent in one_gene:
+
+                    # If the parent has a gene, it passes it on with 50 % likelihood
                     parent_probability.append(0.5)
                 elif parent in two_genes:
+
+                    # If the parent has 2 genes, it can only mutate to become harmless again
                     parent_probability.append(1 - PROBS["mutation"])
             if person not in have_trait:
+
+                # The person is a child and should not have the trait
                 if person in no_genes:
+
+                    # The person is a child and should have 0 genes
+                    # Calculate the probability of each of its parents not passing on a gene and multiply
+                    # that by it not having the trait given that they have no genes
                     probabilities[person] = (1 - parent_probability[0]) * (1 - parent_probability[1]) * \
                                             PROBS["trait"][0][
                                                 False]
                 elif person in one_gene:
+
+                    # The person is a child and should have one gene
+                    # Calculate the probability of each of its parents only passing on one gene and multiply
+                    # that by it not having the trait given that they have a gene
                     probabilities[person] = ((parent_probability[0] * (1 - parent_probability[1])) + (
                             (1 - parent_probability[0]) * parent_probability[1])) * PROBS["trait"][1][False]
                 elif person in two_genes:
+
+                    # The person is a child and should have two genes
+                    # Calculate the probability of each of its parents passing on a gene and multiply
+                    # that by it not having the trait given that they have two genes
                     probabilities[person] = parent_probability[0] * parent_probability[1] * PROBS["trait"][2][False]
             elif person in have_trait:
+
+                # The person is a child and should have the trait
                 if person in no_genes:
+
+                    # The person is a child and should have 0 genes
+                    # Calculate the probability of each of its parents not passing on a gene and multiply
+                    # that by it having the trait given that they have no genes
                     probabilities[person] = (1 - parent_probability[0]) * (1 - parent_probability[1]) * \
                                             PROBS["trait"][0][
                                                 True]
                 elif person in one_gene:
+
+                    # The person is a child and should have one gene
+                    # Calculate the probability of each of its parents only passing on one gene and multiply
+                    # that by it having the trait given that they have a gene
                     probabilities[person] = ((parent_probability[0] * (1 - parent_probability[1])) + (
                             (1 - parent_probability[0]) * parent_probability[1])) * PROBS["trait"][1][True]
                 elif person in two_genes:
+
+                    # The person is a child and should have two genes
+                    # Calculate the probability of each of its parents passing on a gene and multiply
+                    # that by it having the trait given that they have two genes
                     probabilities[person] = parent_probability[0] * parent_probability[1] * PROBS["trait"][2][True]
 
     joint_p = 1
 
+    # Join each persons probability by multiplying
     for probability in probabilities.values():
         joint_p = joint_p * probability
 
@@ -247,6 +320,7 @@ def normalize(probabilities):
     normalized_traits = list()
     normalized_genes = list()
 
+    # Filter the probability values from the dict into two separate lists in the correct order
     for person in probabilities:
         temporary_list = list()
         for has_trait in probabilities[person]["trait"]:
@@ -257,16 +331,19 @@ def normalize(probabilities):
             temporary_list.append(probabilities[person]["gene"][gene_count])
         normalized_genes.append(temporary_list)
 
+    # Normalize the traits list with help from numpy
     for index, person_traits in enumerate(normalized_traits):
         person_traits = numpy.array(person_traits)
         person_traits = person_traits / person_traits.sum()
         normalized_traits[index] = person_traits
 
+    # Normalize the genes list with help from numpy
     for index, person_genes in enumerate(normalized_genes):
         person_genes = numpy.array(person_genes)
         person_genes = person_genes / person_genes.sum()
         normalized_genes[index] = person_genes
 
+    # Update the probability values with its normalized counterparts
     for index, person in enumerate(probabilities):
         for index2, has_trait in enumerate(probabilities[person]["trait"]):
             probabilities[person]["trait"][has_trait] = normalized_traits[index][index2]
